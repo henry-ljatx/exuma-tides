@@ -542,24 +542,32 @@
                     tideDirection = nextLevel > currentLevel ? 'rising' : 'falling';
                 }
 
-                // Find next high and low tides (with tolerance for flat areas)
-                for (let i = closestIndex; i < localPredictions.length - 10; i++) {
-                    const curr = localPredictions[i];
-                    const prev = i > 0 ? localPredictions[i - 1] : null;
-                    const ahead = localPredictions.slice(i, Math.min(i + 10, localPredictions.length));
-                    const maxAhead = Math.max(...ahead.map(p => p.level));
-                    const minAhead = Math.min(...ahead.map(p => p.level));
-
-                    // High tide: peak in next 10 readings
-                    if (prev && !nextHigh && curr.level >= maxAhead - 0.05 && curr.level > (prev.level + 0.01)) {
-                        nextHigh = curr;
+                // Find next high and low tides (simple max/min approach)
+                if (closestIndex < localPredictions.length - 1) {
+                    // Look ahead for next 48 hours
+                    const lookahead = localPredictions.slice(closestIndex);
+                    
+                    // Find max (high tide)
+                    let maxLevel = currentLevel;
+                    let maxIdx = closestIndex;
+                    for (let i = 1; i < Math.min(lookahead.length, 480); i++) { // 480 = 48 hours * 10/hour
+                        if (lookahead[i].level > maxLevel) {
+                            maxLevel = lookahead[i].level;
+                            maxIdx = closestIndex + i;
+                        }
                     }
-                    // Low tide: trough in next 10 readings
-                    if (prev && !nextLow && curr.level <= minAhead + 0.05 && curr.level < (prev.level - 0.01)) {
-                        nextLow = curr;
+                    nextHigh = localPredictions[maxIdx];
+                    
+                    // Find min (low tide) after current
+                    let minLevel = currentLevel;
+                    let minIdx = closestIndex;
+                    for (let i = 1; i < Math.min(lookahead.length, 480); i++) {
+                        if (lookahead[i].level < minLevel) {
+                            minLevel = lookahead[i].level;
+                            minIdx = closestIndex + i;
+                        }
                     }
-
-                    if (nextHigh && nextLow) break;
+                    nextLow = localPredictions[minIdx];
                 }
             }
 
