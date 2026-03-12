@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exuma Tides - Bahamas Tide Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #f8f9fa;
+            --bg-card: #ffffff;
+            --text: #333333;
+            --text-muted: #666666;
+            --primary: #0066cc;
+            --primary-light: #e6f0ff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #e5e7eb;
+        }
+
+        body.dark-mode {
+            --bg: #1a1a1a;
+            --bg-card: #2d2d2d;
+            --text: #e8e8e8;
+            --text-muted: #a8a8a8;
+            --border: #3d3d3d;
+            --primary-light: #1a3a52;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .dark-toggle {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 18px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .current-tide {
+            text-align: center;
+            padding: 20px 16px;
+        }
+
+        .tide-level {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 12px 0;
+        }
+
+        .tide-status {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 0;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .status-icon {
+            font-size: 20px;
+        }
+
+        .tide-indicator {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            margin: 16px 0;
+            overflow: hidden;
+        }
+
+        .tide-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0066cc 0%, #00cc66 50%, #0066cc 100%);
+            width: 50%;
+            transition: width 0.5s ease;
+        }
+
+        .tide-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        .tide-info-item {
+            padding: 8px;
+            background: var(--primary-light);
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .tide-info-item strong {
+            display: block;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .tide-info-item span {
+            display: block;
+            color: var(--text);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .forecast {
+            margin-top: 12px;
+        }
+
+        .forecast-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .forecast-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--primary);
+            font-size: 14px;
+        }
+
+        .forecast-item.high {
+            border-left-color: var(--danger);
+        }
+
+        .forecast-item.low {
+            border-left-color: var(--success);
+        }
+
+        .forecast-time {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .forecast-type {
+            flex: 1;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .forecast-height {
+            flex: 1;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--primary-light);
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        .location-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .refresh-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .alert {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            color: #92400e;
+            font-size: 14px;
+        }
+
+        .alert.high-tide {
+            background: #fee2e2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+
+        .alert-icon {
+            font-size: 20px;
+        }
+
+        .offline-indicator {
+            padding: 4px 8px;
+            background: var(--warning);
+            color: white;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .location-selector {
+            margin-bottom: 16px;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .tide-level {
+                font-size: 28px;
+            }
+
+            .card {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌊 Exuma Tides</h1>
+            <div class="header-controls">
+                <button class="dark-toggle" id="darkToggle" title="Toggle Dark Mode">🌙</button>
+                <button class="secondary" id="refreshBtn" title="Refresh Data">↻</button>
+            </div>
+        </div>
+
+        <div id="errorContainer"></div>
+        <div id="alertContainer"></div>
+
+        <div class="card location-selector">
+            <label for="locationSelect" style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px;">Location</label>
+            <select id="locationSelect">
+                <option value="exuma">Great Exuma (Main)</option>
+                <option value="pig-beach">Pig Beach</option>
+            </select>
+        </div>
+
+        <div class="card current-tide">
+            <h2 style="font-size: 16px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px;">Current Tide</h2>
+            <div class="tide-status">
+                <span class="status-icon" id="tideIcon">🌊</span>
+                <span id="tideStatusText">Loading...</span>
+            </div>
+            <div class="tide-level" id="tideLevel">--</div>
+            <div class="tide-indicator">
+                <div class="tide-fill" id="tideFill"></div>
+            </div>
+            <div class="tide-info">
+                <div class="tide-info-item">
+                    <strong>High Tide</strong>
+                    <span id="highTideTime">--</span>
+                </div>
+                <div class="tide-info-item">
+                    <strong>Low Tide</strong>
+                    <span id="lowTideTime">--</span>
+                </div>
+            </div>
+            <div class="location-info" id="locationInfo">Exuma, Bahamas</div>
+            <div class="refresh-info" id="refreshInfo"></div>
+        </div>
+
+        <div class="card">
+            <div class="forecast-title">Next 24 Hours</div>
+            <div id="forecastContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading tide data...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="location-info" style="margin-top: 20px; padding: 12px; background: var(--primary-light); border-radius: 6px;">
+            <strong>📍 Using NOAA Tide Data</strong><br>
+            Data updates automatically. Offline mode available with cached data.
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const LOCATIONS = {
+            'exuma': {
+                name: 'Great Exuma',
+                station: '8729840', // NOAA station ID for Exuma
+                lat: 24.1667,
+                lon: -76.3667,
+                timezone: 'America/Nassau'
+            },
+            'pig-beach': {
+                name: 'Pig Beach',
+                station: '8729840', // Use same station as nearby
+                lat: 24.1833,
+                lon: -76.6333,
+                timezone: 'America/Nassau'
+            }
+        };
+
+        const CACHE_KEY = 'tideData';
+        const CACHE_TIME_KEY = 'tideCacheTime';
+        const CACHE_DURATION = 3600000; // 1 hour in milliseconds
+
+        let currentLocation = 'exuma';
+        let tideData = null;
+        let isOnline = navigator.onLine;
+
+        // Dark mode toggle
+        document.getElementById('darkToggle').addEventListener('click', toggleDarkMode);
+        document.getElementById('locationSelect').addEventListener('change', changeLocation);
+        document.getElementById('refreshBtn').addEventListener('click', fetchTideData);
+
+        // Initialize
+        loadDarkModePreference();
+        initializeApp();
+
+        window.addEventListener('online', () => {
+            isOnline = true;
+            updateOfflineIndicator();
+            fetchTideData();
+        });
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            updateOfflineIndicator();
+        });
+
+        async function initializeApp() {
+            // Load cached data first
+            loadCachedData();
+            // Try to fetch fresh data
+            if (isOnline) {
+                fetchTideData();
+            }
+        }
+
+        async function fetchTideData() {
+            const location = LOCATIONS[currentLocation];
+            const container = document.getElementById('forecastContainer');
+
+            try {
+                showError(null);
+
+                // NOAA API for tide predictions
+                const today = new Date();
+                const tomorrow = new Date(today.getTime() + 86400000);
+
+                const formatDate = (d) => {
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${d.getFullYear()}${month}${day}`;
+                };
+
+                const startDate = formatDate(today);
+                const endDate = formatDate(tomorrow);
+
+                // Fetch from NOAA
+                const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${location.station}&begin_date=${startDate}&end_date=${endDate}&product=predictions&datum=MLLW&units=metric&time_zone=gmt&format=json`;
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to fetch tide data');
+
+                const data = await response.json();
+                
+                if (!data.predictions || data.predictions.length === 0) {
+                    throw new Error('No tide data available');
+                }
+
+                tideData = data.predictions;
+                cacheTideData(tideData);
+                renderTideData(tideData);
+                checkHighTideAlert(tideData);
+
+            } catch (error) {
+                console.error('Error fetching tide data:', error);
+                if (!loadCachedData()) {
+                    showError('Unable to load tide data. Please check your connection.');
+                    container.innerHTML = '<div class="loading"><p>No data available. Try again when online.</p></div>';
+                }
+            }
+        }
+
+        function renderTideData(predictions) {
+            const container = document.getElementById('forecastContainer');
+            const now = new Date();
+
+            // Convert GMT predictions to local time (Nassau = UTC-5 or UTC-4 in DST)
+            const localPredictions = predictions.map(p => {
+                const date = new Date(p.t + 'Z'); // Parse as GMT
+                return {
+                    time: date,
+                    level: parseFloat(p.v),
+                    originalTime: p.t
+                };
+            });
+
+            // Get current tide status
+            let currentLevel = null;
+            let tideDirection = 'unknown';
+            let nextHigh = null;
+            let nextLow = null;
+
+            // Find closest readings
+            const closestIndex = localPredictions.reduce((closest, pred, idx) => {
+                const timeDiff = Math.abs(pred.time - now);
+                const closestTimeDiff = Math.abs(localPredictions[closest].time - now);
+                return timeDiff < closestTimeDiff ? idx : closest;
+            }, 0);
+
+            if (closestIndex >= 0) {
+                currentLevel = localPredictions[closestIndex].level;
+
+                // Determine if rising or falling
+                if (closestIndex < localPredictions.length - 1) {
+                    const nextLevel = localPredictions[closestIndex + 1].level;
+                    tideDirection = nextLevel > currentLevel ? 'rising' : 'falling';
+                }
+
+                // Find next high and low tides
+                for (let i = closestIndex; i < localPredictions.length; i++) {
+                    const curr = localPredictions[i];
+                    const prev = i > 0 ? localPredictions[i - 1] : null;
+                    const next = i < localPredictions.length - 1 ? localPredictions[i + 1] : null;
+
+                    // High tide: prev < curr > next
+                    if (prev && next && prev.level < curr.level && curr.level > next.level && !nextHigh) {
+                        nextHigh = curr;
+                    }
+                    // Low tide: prev > curr < next
+                    if (prev && next && prev.level > curr.level && curr.level < next.level && !nextLow) {
+                        nextLow = curr;
+                    }
+
+                    if (nextHigh && nextLow) break;
+                }
+            }
+
+            // Update current tide display
+            document.getElementById('tideLevel').textContent = currentLevel !== null ? currentLevel.toFixed(2) + ' m' : '--';
+            
+            const statusIcon = tideDirection === 'rising' ? '📈' : '📉';
+            const statusText = tideDirection === 'rising' ? 'RISING' : 'FALLING';
+            document.getElementById('tideIcon').textContent = statusIcon;
+            document.getElementById('tideStatusText').textContent = statusText;
+
+            // Update tide fill indicator
+            const maxTide = Math.max(...localPredictions.map(p => p.level));
+            const minTide = Math.min(...localPredictions.map(p => p.level));
+            const range = maxTide - minTide || 1;
+            const fillPercent = ((currentLevel - minTide) / range) * 100;
+            document.getElementById('tideFill').style.width = fillPercent + '%';
+
+            // Update high/low tide times
+            if (nextHigh) {
+                document.getElementById('highTideTime').textContent = formatTimeOnly(nextHigh.time);
+            }
+            if (nextLow) {
+                document.getElementById('lowTideTime').textContent = formatTimeOnly(nextLow.time);
+            }
+
+            // Render forecast
+            const nextPredictions = localPredictions.filter(p => p.time >= now).slice(0, 12);
+            
+            if (nextPredictions.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No tide data available for the next 24 hours.</p>';
+                return;
+            }
+
+            const html = nextPredictions.map(pred => {
+                const isHighTide = pred === nextHigh;
+                const isLowTide = pred === nextLow;
+                const type = isHighTide ? 'High' : isLowTide ? 'Low' : 'Slack';
+                const typeClass = isHighTide ? 'high' : isLowTide ? 'low' : '';
+
+                return `
+                    <div class="forecast-item ${typeClass}">
+                        <div class="forecast-time">${formatTimeOnly(pred.time)}</div>
+                        <div class="forecast-type">${type}</div>
+                        <div class="forecast-height">${pred.level.toFixed(2)} m</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+            updateRefreshTime();
+        }
+
+        function checkHighTideAlert(predictions) {
+            const alertContainer = document.getElementById('alertContainer');
+            const now = new Date();
+            const in2Hours = new Date(now.getTime() + 7200000);
+
+            const localPredictions = predictions.map(p => {
+                const date = new Date(p.t + 'Z');
+                return { time: date, level: parseFloat(p.v) };
+            });
+
+            // Find high tides in next 2 hours
+            let highTideAlert = false;
+            let alertTime = null;
+
+            for (let i = 0; i < localPredictions.length - 1; i++) {
+                const curr = localPredictions[i];
+                const next = localPredictions[i + 1];
+                const prev = i > 0 ? localPredictions[i - 1] : null;
+
+                // Check if this is a high tide and within 2 hours
+                if (prev && prev.level < curr.level && curr.level > next.level) {
+                    if (curr.time >= now && curr.time <= in2Hours) {
+                        highTideAlert = true;
+                        alertTime = curr.time;
+                        break;
+                    }
+                }
+            }
+
+            if (highTideAlert && alertTime) {
+                const timeStr = formatTimeOnly(alertTime);
+                alertContainer.innerHTML = `
+                    <div class="alert high-tide">
+                        <span class="alert-icon">⚠️</span>
+                        <strong>High Tide Alert:</strong> High tide in ~2 hours at ${timeStr}. Plan your water activities accordingly!
+                    </div>
+                `;
+            } else {
+                alertContainer.innerHTML = '';
+            }
+        }
+
+        function cacheTideData(data) {
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+            } catch (e) {
+                console.warn('Cache failed:', e);
+            }
+        }
+
+        function loadCachedData() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+
+                if (cached && cacheTime) {
+                    const age = Date.now() - parseInt(cacheTime);
+                    if (age < CACHE_DURATION) {
+                        tideData = JSON.parse(cached);
+                        renderTideData(tideData);
+                        updateRefreshTime();
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.warn('Cache load failed:', e);
+            }
+            return false;
+        }
+
+        function changeLocation() {
+            currentLocation = document.getElementById('locationSelect').value;
+            const location = LOCATIONS[currentLocation];
+            document.getElementById('locationInfo').textContent = location.name + ', Bahamas';
+            fetchTideData();
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        function loadDarkModePreference() {
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            if (isDark || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        function formatTimeOnly(date) {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
+        function updateRefreshTime() {
+            const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+            if (cacheTime) {
+                const age = Math.round((Date.now() - parseInt(cacheTime)) / 60000);
+                const timeStr = age < 1 ? 'just now' : age + ' min ago';
+                document.getElementById('refreshInfo').textContent = `Updated ${timeStr}`;
+            }
+        }
+
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            if (message) {
+                container.innerHTML = `<div class="error">⚠️ ${message}</div>`;
+            } else {
+                container.innerHTML = '';
+            }
+        }
+
+        function updateOfflineIndicator() {
+            // Could add offline badge here if needed
+        }
+
+        // Periodic refresh (every 30 minutes)
+        setInterval(() => {
+            if (isOnline && tideData) {
+                fetchTideData();
+            }
+        }, 1800000);
+    </script>
+</body>
+</html>
