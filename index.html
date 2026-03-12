@@ -479,8 +479,9 @@
                 const startDate = formatDate(today);
                 const endDate = formatDate(tomorrow);
 
-                // Fetch from NOAA
-                const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${location.station}&begin_date=${startDate}&end_date=${endDate}&product=predictions&datum=MLLW&units=metric&time_zone=gmt&format=json`;
+                // Fetch from NOAA via AllOrigins CORS proxy
+                const noaaUrl = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${location.station}&begin_date=${startDate}&end_date=${endDate}&product=predictions&datum=MLLW&units=metric&time_zone=gmt&format=json`;
+                const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(noaaUrl)}`;
 
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Failed to fetch tide data');
